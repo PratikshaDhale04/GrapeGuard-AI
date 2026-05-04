@@ -29,8 +29,3 @@ To assist farmers in early detection of downy mildew disease and reduce crop los
 ## 📈 Outcome
 The system provides accurate predictions of disease risk, helping in better crop management and reducing unnecessary pesticide usage.
 
-## 👩‍💻 Author
-Pratiksha Sunil Dhale  
-
-## 📌 Note
-This project is developed for academic and learning purposes in the field of Machine Learning and Agriculture.
