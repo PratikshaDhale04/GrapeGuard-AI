@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grape Disease Prediction System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <header class="header">
+            <div class="logo">&#x1F347;</div>
+            <h1>Grape Disease Prediction System</h1>
+            <p class="subtitle">Smart Prediction & Control of Downy Mildew Using Machine Learning</p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Input Form -->
+            <section class="form-section" id="formSection">
+                <h2>Enter Environmental Data</h2>
+                <form id="predictionForm" onsubmit="return handleSubmit(event)">
+                    <div class="form-group">
+                        <label for="rainfall">Rainfall (mm)</label>
+                        <input type="number" id="rainfall" name="rainfall" 
+                               min="0" max="200" step="0.1" placeholder="e.g., 50" required>
+                        <span class="hint">Range: 0 - 200 mm</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="humidity">Humidity (%)</label>
+                        <input type="number" id="humidity" name="humidity" 
+                               min="0" max="100" step="0.1" placeholder="e.g., 80" required>
+                        <span class="hint">Range: 0 - 100%</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="temperature">Temperature (°C)</label>
+                        <input type="number" id="temperature" name="temperature" 
+                               min="-10" max="50" step="0.1" placeholder="e.g., 25" required>
+                        <span class="hint">Range: -10 - 50°C</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="crop_stage">Crop Stage</label>
+                        <select id="crop_stage" name="crop_stage" required>
+                            <option value="" disabled selected>Select crop stage</option>
+                            <option value="1">1 - Early Growth</option>
+                            <option value="2">2 - Mid Growth</option>
+                            <option value="3">3 - Late Growth</option>
+                        </select>
+                        <span class="hint">Current growth stage of the grape crop</span>
+                    </div>
+
+                    <button type="submit" class="btn-predict" id="predictBtn">
+                        <span class="btn-text">Predict Disease Risk</span>
+                        <span class="btn-loading" style="display:none;">
+                            <span class="spinner"></span> Analyzing...
+                        </span>
+                    </button>
+                </form>
+
+                <!-- Error Messages -->
+                <div id="errorMessages" class="error-container" style="display:none;"></div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="resultsSection" style="display:none;">
+                <h2>Prediction Results</h2>
+
+                <!-- Risk Level Display -->
+                <div class="risk-display" id="riskDisplay">
+                    <div class="risk-icon" id="riskIcon"></div>
+                    <h3 id="riskLevel"></h3>
+                    <p id="riskAction" class="risk-action"></p>
+                </div>
+
+                <!-- Probability Bar Chart -->
+                <div class="probabilities" id="probabilities">
+                    <h4>Confidence Levels</h4>
+                    <div class="prob-bars">
+                        <div class="prob-item">
+                            <span class="prob-label">Low Risk</span>
+                            <div class="prob-bar-bg">
+                                <div class="prob-bar-fill" id="probLow" style="width:0%; background:#2ecc71;"></div>
+                            </div>
+                            <span class="prob-value" id="probLowVal">0%</span>
+                        </div>
+                        <div class="prob-item">
+                            <span class="prob-label">Medium Risk</span>
+                            <div class="prob-bar-bg">
+                                <div class="prob-bar-fill" id="probMedium" style="width:0%; background:#f39c12;"></div>
+                            </div>
+                            <span class="prob-value" id="probMediumVal">0%</span>
+                        </div>
+                        <div class="prob-item">
+                            <span class="prob-label">High Risk</span>
+                            <div class="prob-bar-bg">
+                                <div class="prob-bar-fill" id="probHigh" style="width:0%; background:#e74c3c;"></div>
+                            </div>
+                            <span class="prob-value" id="probHighVal">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommendations -->
+                <div class="recommendations" id="recommendations">
+                    <h4>Recommended Actions</h4>
+                    <ul id="recommendationList"></ul>
+                </div>
+
+                <!-- Input Summary -->
+                <div class="input-summary" id="inputSummary">
+                    <h4>Input Summary</h4>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <span class="summary-label">Rainfall</span>
+                            <span class="summary-value" id="sumRainfall">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Humidity</span>
+                            <span class="summary-value" id="sumHumidity">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Temperature</span>
+                            <span class="summary-value" id="sumTemperature">-</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">Crop Stage</span>
+                            <span class="summary-value" id="sumCropStage">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn-new" onclick="resetForm()">New Prediction</button>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Smart Prediction & Control of Downy Mildew in Grapes Using Machine Learning</p>
+            <p class="tech-stack">Built with Flask | scikit-learn | Random Forest | HTML/CSS</p>
+        </footer>
+    </div>
+
+    <script>
+        // Handle form submission
+        function handleSubmit(event) {
+            event.preventDefault();
+            
+            const btn = document.getElementById("predictBtn");
+            const btnText = btn.querySelector(".btn-text");
+            const btnLoading = btn.querySelector(".btn-loading");
+            const errorContainer = document.getElementById("errorMessages");
+            
+            // Show loading state
+            btn.disabled = true;
+            btnText.style.display = "none";
+            btnLoading.style.display = "inline";
+            errorContainer.style.display = "none";
+            
+            // Collect form data
+            const formData = new FormData(document.getElementById("predictionForm"));
+            
+            // Send prediction request
+            fetch("/predict", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.errors) {
+                    showError(data.errors);
+                } else if (data.error) {
+                    showError([data.error]);
+                } else {
+                    displayResults(data);
+                }
+            })
+            .catch(error => {
+                showError(["Connection error. Please try again."]);
+            })
+            .finally(() => {
+                btn.disabled = false;
+                btnText.style.display = "inline";
+                btnLoading.style.display = "none";
+            });
+            
+            return false;
+        }
+        
+        // Display prediction results
+        function displayResults(data) {
+            const riskDisplay = document.getElementById("riskDisplay");
+            const riskIcon = document.getElementById("riskIcon");
+            const riskLevel = document.getElementById("riskLevel");
+            const riskAction = document.getElementById("riskAction");
+            
+            // Set risk display based on prediction
+            const prediction = data.prediction.toLowerCase();
+            const colors = {
+                "low": "#2ecc71",
+                "medium": "#f39c12",
+                "high": "#e74c3c"
+            };
+            const icons = {
+                "low": "&#x2705;",
+                "medium": "&#x26A0;&#xFE0F;",
+                "high": "&#x1F6A8;"
+            };
+            
+            riskDisplay.style.borderColor = colors[prediction];
+            riskDisplay.style.background = `linear-gradient(135deg, ${colors[prediction] || colors["low"]}15, ${colors[prediction] || colors["low"]}05)`;
+            riskIcon.innerHTML = icons[prediction] || "&#x2705;";
+            riskLevel.textContent = data.prediction + " Risk";
+            riskLevel.style.color = colors[prediction];
+            riskAction.textContent = data.recommendation.action;
+            
+            // Update probabilities
+            if (data.probabilities) {
+                const probs = data.probabilities;
+                document.getElementById("probLow").style.width = (probs["Low"] || 0) + "%";
+                document.getElementById("probLowVal").textContent = (probs["Low"] || 0) + "%";
+                document.getElementById("probMedium").style.width = (probs["Medium"] || 0) + "%";
+                document.getElementById("probMediumVal").textContent = (probs["Medium"] || 0) + "%";
+                document.getElementById("probHigh").style.width = (probs["High"] || 0) + "%";
+                document.getElementById("probHighVal").textContent = (probs["High"] || 0) + "%";
+            }
+            
+            // Update recommendations
+            const recList = document.getElementById("recommendationList");
+            recList.innerHTML = "";
+            data.recommendation.details.forEach(detail => {
+                const li = document.createElement("li");
+                li.textContent = detail;
+                recList.appendChild(li);
+            });
+            
+            // Update input summary
+            const inputs = data.inputs;
+            const stageNames = {1: "Early", 2: "Mid", 3: "Late"};
+            document.getElementById("sumRainfall").textContent = inputs.rainfall + " mm";
+            document.getElementById("sumHumidity").textContent = inputs.humidity + "%";
+            document.getElementById("sumTemperature").textContent = inputs.temperature + "°C";
+            document.getElementById("sumCropStage").textContent = stageNames[inputs.crop_stage] || inputs.crop_stage;
+            
+            // Show results, hide form
+            document.getElementById("formSection").style.display = "none";
+            document.getElementById("resultsSection").style.display = "block";
+        }
+        
+        // Show error messages
+        function showError(errors) {
+            const container = document.getElementById("errorMessages");
+            container.innerHTML = "";
+            errors.forEach(error => {
+                const p = document.createElement("p");
+                p.textContent = error;
+                container.appendChild(p);
+            });
+            container.style.display = "block";
+        }
+        
+        // Reset form for new prediction
+        function resetForm() {
+            document.getElementById("predictionForm").reset();
+            document.getElementById("formSection").style.display = "block";
+            document.getElementById("resultsSection").style.display = "none";
+            document.getElementById("errorMessages").style.display = "none";
+        }
+    </script>
+</body>
+</html>
